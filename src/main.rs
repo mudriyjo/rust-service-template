@@ -2,7 +2,7 @@ mod config;
 
 use axum::{routing::get, Extension, Router};
 use color_eyre::eyre::Result;
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{Database};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     let config: Config = get_config()?;
     let connection_pool = Database::connect(&config.database_url).await?;
-    
+
     let app = Router::new()
         .route("/", get(hello_world))
         .layer(Extension(connection_pool.clone()));
