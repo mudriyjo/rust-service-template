@@ -6,6 +6,7 @@ use serde::Deserialize;
 pub struct Config {
     pub server_host: String,
     pub server_port: u32,
+    pub database_url: String,
 }
 
 pub fn get_config() -> Result<Config> {

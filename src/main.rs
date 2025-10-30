@@ -1,7 +1,8 @@
 mod config;
 
-use axum::{Router, routing::get};
+use axum::{routing::get, Extension, Router};
 use color_eyre::eyre::Result;
+use sea_orm::{Database, DatabaseConnection};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -22,7 +23,12 @@ async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
     let config: Config = get_config()?;
-    let app = Router::new().route("/", get(|| hello_world()));
+    let connection_pool = Database::connect(&config.database_url).await?;
+    
+    let app = Router::new()
+        .route("/", get(hello_world))
+        .layer(Extension(connection_pool.clone()));
+
     let server_start_string = format!("{}:{}", config.server_host, config.server_port);
     let listener = tokio::net::TcpListener::bind(server_start_string)
         .await
