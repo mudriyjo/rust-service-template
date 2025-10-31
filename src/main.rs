@@ -1,13 +1,16 @@
 mod config;
+mod entity;
 
-use axum::{routing::get, Extension, Router};
+use axum::{http::StatusCode, routing::{get, post}, Extension, Json, Router};
 use color_eyre::eyre::Result;
 use migration::{Migrator, MigratorTrait};
-use sea_orm::{Database};
+use sea_orm::{ActiveModelTrait, Database, DatabaseConnection, NotSet, Set};
+use serde::{Deserialize, Serialize};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::config::{Config, get_config};
+use crate::entity::user;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -31,6 +34,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/", get(hello_world))
+        .route("/api/users", post(add_user))
         .layer(Extension(connection_pool.clone()));
 
     let server_start_string = format!("{}:{}", config.server_host, config.server_port);
@@ -47,6 +51,26 @@ async fn hello_world() -> String {
     "Hello, world!".to_string()
 }
 
-async fn add_user() -> Result<String> {
-    Ok("User added".to_string())
+#[derive(Debug, Deserialize, Serialize)]
+struct CreateUserRequest {
+    name: String,
+    email: String,
+}
+
+async fn add_user(
+    Extension(db): Extension<DatabaseConnection>,
+    Json(payload): Json<CreateUserRequest>,
+) -> Result<(StatusCode, Json<user::Model>), StatusCode> {
+    let user_model = user::ActiveModel {
+        id: NotSet,
+        name: Set(payload.name),
+        email: Set(payload.email),
+    };
+
+    let user = user_model
+        .insert(&db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok((StatusCode::CREATED, Json(user)))
 }
