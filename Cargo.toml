@@ -1,9 +1,13 @@
+[workspace]
+members = [".", "migration"]
+
 [package]
 name = "rust-service-template"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+migration = { path = "migration" }
 async-trait = "0.1.89"
 axum = "0.8.6"
 chrono = "0.4.42"
